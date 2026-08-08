@@ -85,5 +85,31 @@
 </footer>
 
 <script src="script.js"></script>
+
+<!-- Order modal — appears on Buy Now -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeOrderModal()" aria-label="Close">&times;</button>
+    <div class="modal-header">
+      <div class="section-eyebrow">Complete Your Order</div>
+      <div class="modal-product-name" id="modal-product-name"></div>
+      <div class="modal-product-price" id="modal-product-price"></div>
+    </div>
+    <form id="order-form" onsubmit="submitOrder(event)">
+      <label>Your Name
+        <input type="text" id="order-name" required placeholder="e.g. Priya Sharma">
+      </label>
+      <label>Delivery Address
+        <textarea id="order-address" required placeholder="House no., street, city, PIN code" rows="3"></textarea>
+      </label>
+      <label>Size / Notes <span class="optional">(optional)</span>
+        <input type="text" id="order-notes" placeholder="e.g. Size M, or any request">
+      </label>
+      <button type="submit" class="modal-submit">Send Order on WhatsApp</button>
+      <p class="modal-hint">This opens WhatsApp with your order details filled in — just hit send.</p>
+    </form>
+  </div>
+</div>
+
 </body>
 </html>

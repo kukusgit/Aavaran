@@ -1,5 +1,9 @@
 // ============ CONFIG ============
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzIKCFG-GN1LHVZP2ZwzwxYCfz9wwToj0QyXaz-FGuibBOkgdQnVHNnwivzhm35u39s/exec";
+const SELLER_WHATSAPP_NUMBER = "918745042891";
+
+let selectedProduct = null;
+let allProducts = [];
 
 // Fallback color-swatch gradients — used until a real photo (Image column) exists for a product
 const SWATCH_MAP = {
@@ -103,9 +107,66 @@ function renderInstaStrip(list){
 }
 
 function handleBuyNow(code){
-  // Placeholder — real WhatsApp redirect logic comes in Part 5
-  alert(`Buy Now clicked for ${code}\n\n(WhatsApp order flow will be wired up in Part 5)`);
+  const product = allProducts.find(p => p.code === code);
+  if(!product) return;
+  openOrderModal(product);
 }
+
+function openOrderModal(product){
+  selectedProduct = product;
+  document.getElementById('modal-product-name').textContent = product.name;
+  document.getElementById('modal-product-price').textContent =
+    `₹${product.price.toLocaleString('en-IN')} · ${product.code}`;
+  document.getElementById('order-form').reset();
+  document.getElementById('order-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOrderModal(){
+  document.getElementById('order-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function submitOrder(e){
+  e.preventDefault();
+  if(!selectedProduct) return;
+
+  const name = document.getElementById('order-name').value.trim();
+  const address = document.getElementById('order-address').value.trim();
+  const notes = document.getElementById('order-notes').value.trim();
+
+  const lines = [
+    `Hi Aavaran! I'd like to order:`,
+    ``,
+    `*${selectedProduct.name}*`,
+    `Code: ${selectedProduct.code}`,
+    `Price: ₹${selectedProduct.price.toLocaleString('en-IN')}`,
+    ``,
+    `Name: ${name}`,
+    `Address: ${address}`,
+  ];
+  if(notes){
+    lines.push(`Notes: ${notes}`);
+  }
+  lines.push(``, `(Sent from the Aavaran website)`);
+
+  const message = encodeURIComponent(lines.join('\n'));
+  const waUrl = `https://wa.me/${SELLER_WHATSAPP_NUMBER}?text=${message}`;
+
+  window.open(waUrl, '_blank');
+  closeOrderModal();
+}
+
+// Close modal on overlay click or Escape key
+document.addEventListener('DOMContentLoaded', () => {
+  const overlay = document.getElementById('order-modal');
+  overlay.addEventListener('click', (e) => {
+    if(e.target === overlay) closeOrderModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') closeOrderModal();
+  });
+});
 
 function showLoadError(){
   document.getElementById('product-grid').innerHTML =
@@ -139,6 +200,7 @@ async function loadProducts(){
       return;
     }
 
+    allProducts = products;
     const [newest, ...rest] = products;
     renderFeatured(newest);
     renderProducts(rest);
