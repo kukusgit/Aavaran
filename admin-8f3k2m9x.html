@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aavaran — Add Product</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body{background:var(--ivory);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .admin-box{
+    background:var(--card);
+    border:1px solid rgba(184,134,11,0.4);
+    border-radius:14px;
+    max-width:460px;width:100%;
+    box-shadow:0 16px 40px rgba(84,16,27,0.10);
+    overflow:hidden;
+  }
+  .admin-header{
+    background:linear-gradient(165deg, var(--maroon-deep) 0%, var(--maroon-darker) 100%);
+    color:var(--ivory);
+    padding:26px 28px 20px;
+    text-align:center;
+  }
+  .admin-header img{height:44px;margin-bottom:10px;}
+  .admin-header h1{
+    font-family:var(--font-wordmark);
+    font-size:22px;font-weight:600;
+  }
+  .admin-header p{
+    font-size:12px;color:#E9DCCF;margin-top:4px;
+  }
+  #admin-form{padding:26px 28px 30px;display:flex;flex-direction:column;gap:16px;}
+  #admin-form label{
+    display:flex;flex-direction:column;gap:6px;
+    font-size:12.5px;font-weight:600;color:var(--ink);
+  }
+  #admin-form input[type="text"],
+  #admin-form input[type="number"]{
+    font-family:var(--font-body);font-size:14px;
+    padding:10px 12px;border:1px solid var(--border);
+    border-radius:7px;background:var(--ivory);color:var(--ink);
+  }
+  #admin-form input:focus{outline:none;border-color:var(--gold);}
+  .photo-input{
+    border:2px dashed var(--border);
+    border-radius:10px;
+    padding:20px;
+    text-align:center;
+    cursor:pointer;
+    background:var(--ivory);
+    transition:border-color .15s ease;
+  }
+  .photo-input:hover{border-color:var(--gold);}
+  .photo-input input{display:none;}
+  .photo-preview{
+    max-width:100%;max-height:160px;
+    border-radius:8px;margin-top:10px;display:none;
+  }
+  .photo-label-text{font-size:13px;color:var(--ink-soft);}
+  .admin-submit{
+    padding:13px;background:var(--maroon);color:var(--ivory);
+    border:none;border-radius:8px;font-weight:600;font-size:14px;
+    cursor:pointer;transition:background .15s ease;
+  }
+  .admin-submit:hover{background:var(--maroon-deep);}
+  .admin-submit[disabled]{background:#D8CFC2;color:#8A8073;cursor:not-allowed;}
+  .admin-status{
+    text-align:center;font-size:13px;padding:10px;border-radius:8px;display:none;
+  }
+  .admin-status.show{display:block;}
+  .admin-status.success{background:#E4F2EC;color:var(--teal);}
+  .admin-status.error{background:#F8E4E4;color:#9B3A3A;}
+</style>
+</head>
+<body>
+
+<div class="admin-box">
+  <div class="admin-header">
+    <img src="assets/logo.png" alt="Aavaran">
+    <h1>Add a Product</h1>
+    <p>This link is just for you — keep it private</p>
+  </div>
+
+  <form id="admin-form">
+    <label>Product Name
+      <input type="text" id="p-name" required placeholder="e.g. Vermilion Silk Saree, Stone Work">
+    </label>
+    <label>Price (₹)
+      <input type="number" id="p-price" required placeholder="e.g. 2899" min="1">
+    </label>
+    <label>Fabric
+      <input type="text" id="p-fabric" required placeholder="e.g. Silk">
+    </label>
+    <label>Colour
+      <input type="text" id="p-colour" required placeholder="e.g. Red">
+    </label>
+    <label>Photo
+      <div class="photo-input" onclick="document.getElementById('p-photo').click()">
+        <input type="file" id="p-photo" accept="image/*" required>
+        <span class="photo-label-text" id="photo-label-text">Tap to choose a photo</span>
+        <img id="photo-preview" class="photo-preview">
+      </div>
+    </label>
+    <button type="submit" class="admin-submit" id="admin-submit-btn">Add Product</button>
+    <div class="admin-status" id="admin-status"></div>
+  </form>
+</div>
+
+<script>
+  const CLOUD_NAME = "snqm7t7k";
+  const UPLOAD_PRESET = "aavaran_uploads";
+  const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzIKCFG-GN1LHVZP2ZwzwxYCfz9wwToj0QyXaz-FGuibBOkgdQnVHNnwivzhm35u39s/exec";
+
+  const photoInput = document.getElementById('p-photo');
+  const photoPreview = document.getElementById('photo-preview');
+  const photoLabelText = document.getElementById('photo-label-text');
+
+  photoInput.addEventListener('change', () => {
+    const file = photoInput.files[0];
+    if(!file) return;
+    photoLabelText.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      photoPreview.src = e.target.result;
+      photoPreview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function setStatus(msg, type){
+    const el = document.getElementById('admin-status');
+    el.textContent = msg;
+    el.className = `admin-status show ${type}`;
+  }
+
+  document.getElementById('admin-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('admin-submit-btn');
+    const file = photoInput.files[0];
+
+    if(!file){
+      setStatus("Please choose a photo first.", "error");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Uploading photo...";
+    setStatus("Uploading photo, please wait...", "success");
+
+    try{
+      // Step 1: upload the photo to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', UPLOAD_PRESET);
+
+      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const cloudData = await cloudRes.json();
+
+      if(!cloudData.secure_url){
+        throw new Error("Photo upload failed");
+      }
+
+      btn.textContent = "Saving product...";
+
+      // Step 2: send product details + image URL to the Sheet via Apps Script
+      const payload = {
+        name: document.getElementById('p-name').value.trim(),
+        price: document.getElementById('p-price').value,
+        fabric: document.getElementById('p-fabric').value.trim(),
+        colour: document.getElementById('p-colour').value.trim(),
+        image: cloudData.secure_url
+      };
+
+      await fetch(SHEET_API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      setStatus("✅ Product added! It'll appear on the site now.", "success");
+      document.getElementById('admin-form').reset();
+      photoPreview.style.display = 'none';
+      photoLabelText.textContent = "Tap to choose a photo";
+
+    }catch(err){
+      console.error(err);
+      setStatus("Something went wrong. Please try again.", "error");
+    }finally{
+      btn.disabled = false;
+      btn.textContent = "Add Product";
+    }
+  });
+</script>
+
+</body>
+</html>
