@@ -201,6 +201,7 @@ async function loadProducts(){
         image: (r.Image || "").trim(),
         inStock: isInStock(r["In stock"]),
         timestamp: r.Timestamp,
+        featured: isInStock(r["Featured"]), // reuses the same TRUE/boolean check
         swatch: swatchFor(r.Colour)
       }))
       .reverse(); // last row in the sheet = most recently added
@@ -211,8 +212,10 @@ async function loadProducts(){
     }
 
     allProducts = products;
-    const [newest, ...rest] = products;
-    renderFeatured(newest);
+    // A manually-flagged Featured product wins; otherwise fall back to newest
+    const featuredProduct = products.find(p => p.featured) || products[0];
+    const rest = products.filter(p => p.code !== featuredProduct.code);
+    renderFeatured(featuredProduct);
     renderProducts(rest);
     renderInstaStrip(products);
   }catch(err){

@@ -67,6 +67,18 @@
   }
   .admin-submit:hover{background:var(--maroon-deep);}
   .admin-submit[disabled]{background:#D8CFC2;color:#8A8073;cursor:not-allowed;}
+  .checkbox-label{
+    flex-direction:row !important;
+    align-items:center;gap:10px !important;
+    font-weight:500 !important;
+    background:var(--ivory);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:11px 14px;
+    cursor:pointer;
+  }
+  .checkbox-label input{width:16px;height:16px;accent-color:var(--maroon);cursor:pointer;}
+  .checkbox-label span{font-size:12.5px;color:var(--ink);}
   .admin-status{
     text-align:center;font-size:13px;padding:10px;border-radius:8px;display:none;
   }
@@ -157,6 +169,10 @@
         <span class="photo-label-text" id="photo-label-text">Tap to choose a photo</span>
         <img id="photo-preview" class="photo-preview">
       </div>
+    </label>
+    <label class="checkbox-label">
+      <input type="checkbox" id="p-featured">
+      <span>Make this the <strong>Featured</strong> product on the homepage</span>
     </label>
     <button type="submit" class="admin-submit" id="admin-submit-btn">Add Product</button>
     <div class="admin-status" id="admin-status"></div>
@@ -265,7 +281,8 @@
         price: document.getElementById('p-price').value,
         fabric: document.getElementById('p-fabric').value.trim(),
         colour: document.getElementById('p-colour').value.trim(),
-        image: cloudData.secure_url
+        image: cloudData.secure_url,
+        featured: document.getElementById('p-featured').checked
       };
 
       await fetch(SHEET_API_URL, {
@@ -275,6 +292,7 @@
 
       setStatus("✅ Product added! It'll appear on the site now.", "success");
       document.getElementById('admin-form').reset();
+      document.getElementById('p-featured').checked = false;
       photoPreview.style.display = 'none';
       photoLabelText.textContent = "Tap to choose a photo";
       croppedBlob = null;
