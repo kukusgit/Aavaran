@@ -1,6 +1,9 @@
 // ============ CONFIG ============
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzIKCFG-GN1LHVZP2ZwzwxYCfz9wwToj0QyXaz-FGuibBOkgdQnVHNnwivzhm35u39s/exec";
-const SELLER_WHATSAPP_NUMBER = "918745042891";
+
+// Seller's WhatsApp number, digits only, with country code (no + or spaces). e.g. 91 for India.
+// Replace with the real seller number before going live with an actual client.
+const SELLER_WHATSAPP_NUMBER = "911234567890";
 
 let selectedProduct = null;
 let allProducts = [];
@@ -38,10 +41,17 @@ function timeLabel(timestamp){
   return `Added ${Math.floor(hrs/24)}d ago`;
 }
 
+// Requests a smartly-cropped version of a Cloudinary image (content-aware, not just centered)
+function cloudinaryCrop(url, width, height){
+  if(!url.includes('/upload/')) return url; // not a Cloudinary URL, leave as-is
+  return url.replace('/upload/', `/upload/c_fill,g_auto,w_${width},h_${height},q_auto,f_auto/`);
+}
+
 // Renders the product's image if a real photo URL exists, otherwise the color swatch
-function visualFor(p, extraClass){
+function visualFor(p, extraClass, width, height){
   if(p.image){
-    return `<img class="card-img ${extraClass}" src="${p.image}" alt="${p.name}">`;
+    const src = cloudinaryCrop(p.image, width, height);
+    return `<img class="card-img ${extraClass}" src="${src}" alt="${p.name}">`;
   }
   return `
     <div class="card-swatch ${extraClass}" style="background:${p.swatch}">
@@ -54,7 +64,7 @@ function renderProducts(list){
   grid.innerHTML = list.map(p => `
       <div class="card">
         <span class="card-badge ${p.inStock ? '' : 'sold'}">${p.inStock ? 'IN STOCK' : 'SOLD OUT'}</span>
-        ${visualFor(p, p.inStock ? '' : 'sold-out')}
+        ${visualFor(p, p.inStock ? '' : 'sold-out', 500, 500)}
         <div class="card-body">
           <div class="card-name">${p.name}</div>
           <div class="card-meta">
@@ -81,7 +91,7 @@ function renderFeatured(product){
     <div class="featured-card">
       <div class="featured-visual">
         <span class="featured-label">Today's Feature</span>
-        ${visualFor(product, product.inStock ? '' : 'sold-out')}
+        ${visualFor(product, product.inStock ? '' : 'sold-out', 800, 600)}
       </div>
       <div class="featured-text">
         <div class="featured-eyebrow">Straight From Tonight's Live</div>
