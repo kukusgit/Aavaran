@@ -178,6 +178,63 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+const CACHE_KEY = "aavaran_products_cache";
+
+function renderSkeletons(){
+  const featuredSection = document.getElementById('featured-saree');
+  featuredSection.innerHTML = `
+    <div class="skeleton-featured">
+      <div class="skeleton-img"></div>
+      <div class="skeleton-featured-text">
+        <div class="skeleton-line w-40"></div>
+        <div class="skeleton-line w-90" style="height:24px;"></div>
+        <div class="skeleton-line w-70"></div>
+        <div class="skeleton-line w-40" style="margin-top:10px;"></div>
+        <div class="skeleton-line w-90"></div>
+      </div>
+    </div>`;
+
+  const grid = document.getElementById('product-grid');
+  grid.innerHTML = Array.from({length: 8}).map(() => `
+    <div class="skeleton-card">
+      <div class="skeleton-img"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-line w-90"></div>
+        <div class="skeleton-line w-40"></div>
+        <div class="skeleton-line w-70"></div>
+        <div class="skeleton-line w-90"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderFromProducts(products){
+  allProducts = products;
+  const featuredProduct = products.find(p => p.featured) || products[0];
+  const rest = products.filter(p => p.code !== featuredProduct.code);
+  renderFeatured(featuredProduct);
+  renderProducts(rest);
+  renderInstaStrip(products);
+}
+
+function parseProducts(rows){
+  return rows
+    .filter(r => r.Code)
+    .map(r => ({
+      code: r.Code,
+      name: r.Name,
+      price: Number(r.Price) || 0,
+      fabric: r.Fabric,
+      color: r.Colour,
+      image: (r.Image || "").trim(),
+      inStock: isInStock(r["In stock"]),
+      timestamp: r.Timestamp,
+      featured: isInStock(r["Featured"]),
+      swatch: swatchFor(r.Colour)
+    }))
+    .reverse(); // last row in the sheet = most recently added
+}
+
 function showLoadError(){
   document.getElementById('product-grid').innerHTML =
     `<p style="grid-column:1/-1;text-align:center;color:var(--ink-soft);padding:30px 0;">
@@ -186,41 +243,40 @@ function showLoadError(){
 }
 
 async function loadProducts(){
+  // 1) Show cached data instantly if we have it from a previous visit
+  let hadCache = false;
+  try{
+    const cached = localStorage.getItem(CACHE_KEY);
+    if(cached){
+      const products = JSON.parse(cached);
+      if(Array.isArray(products) && products.length > 0){
+        renderFromProducts(products);
+        hadCache = true;
+      }
+    }
+  }catch(e){ /* localStorage unavailable — ignore, fall through to normal load */ }
+
+  // 2) If nothing cached yet, show skeleton placeholders while we fetch
+  if(!hadCache){
+    renderSkeletons();
+  }
+
+  // 3) Always fetch a fresh copy in the background and update once it arrives
   try{
     const res = await fetch(SHEET_API_URL);
     const rows = await res.json();
-
-    const products = rows
-      .filter(r => r.Code) // skip any blank rows
-      .map(r => ({
-        code: r.Code,
-        name: r.Name,
-        price: Number(r.Price) || 0,
-        fabric: r.Fabric,
-        color: r.Colour,
-        image: (r.Image || "").trim(),
-        inStock: isInStock(r["In stock"]),
-        timestamp: r.Timestamp,
-        featured: isInStock(r["Featured"]), // reuses the same TRUE/boolean check
-        swatch: swatchFor(r.Colour)
-      }))
-      .reverse(); // last row in the sheet = most recently added
+    const products = parseProducts(rows);
 
     if(products.length === 0){
-      showLoadError();
+      if(!hadCache) showLoadError();
       return;
     }
 
-    allProducts = products;
-    // A manually-flagged Featured product wins; otherwise fall back to newest
-    const featuredProduct = products.find(p => p.featured) || products[0];
-    const rest = products.filter(p => p.code !== featuredProduct.code);
-    renderFeatured(featuredProduct);
-    renderProducts(rest);
-    renderInstaStrip(products);
+    renderFromProducts(products);
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify(products)); }catch(e){}
   }catch(err){
     console.error("Failed to load products:", err);
-    showLoadError();
+    if(!hadCache) showLoadError();
   }
 }
 
